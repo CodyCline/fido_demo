@@ -2,7 +2,10 @@ package models
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
+	"github.com/duo-labs/webauthn/protocol"
+	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
@@ -52,6 +55,56 @@ func randomID() string {
 }
 
 //Webauthn Methods
+
+//AddCredential Associates a credential with a user
+func (a *Account) AddCredential(cred webauthn.Credential) {
+	credJSON, err := json.Marshal(cred)
+	if err != nil {
+	}
+
+	databaseCred := Credential{
+		Details:    credJSON,
+		FKUsername: a.Username,
+		AAGUID:     cred.Authenticator.AAGUID,
+		SignCount:  cred.Authenticator.SignCount,
+	}
+	GetDB().Save(&databaseCred)
+
+}
+
+//WebAuthnCredentials returns credentials owned by the user
+func (a Account) WebAuthnCredentials() []webauthn.Credential {
+	var creds []Credential
+	credentialList := []webauthn.Credential{}
+	GetDB().Table("credentials").Where("fk_username = ?", a.Username).Find(&creds)
+	for _, cred := range creds {
+		oneCred := webauthn.Credential{}
+		json.Unmarshal(cred.Details, &oneCred)
+		credentialList = append(credentialList, oneCred)
+	}
+
+	return credentialList
+}
+
+//CredentialExcludeList Returns array with users Credentials
+func (a Account) CredentialExcludeList() []protocol.CredentialDescriptor {
+
+	credentialExcludeList := []protocol.CredentialDescriptor{}
+	var credentials []Credential
+
+	GetDB().Where("fk_username = ?", a.Username).Find(&credentials)
+
+	for _, cred := range credentials {
+		oneCred := webauthn.Credential{}
+		json.Unmarshal(cred.Details, &oneCred)
+		descriptor := protocol.CredentialDescriptor{
+			Type:         protocol.PublicKeyCredentialType,
+			CredentialID: oneCred.ID,
+		}
+		credentialExcludeList = append(credentialExcludeList, descriptor)
+	}
+	return credentialExcludeList
+}
 
 //WebAuthnID Get webauthn id
 func (a Account) WebAuthnID() []byte {
