@@ -34,9 +34,8 @@ func main() {
 	auth := r.PathPrefix("/auth").Subrouter()
 	auth.HandleFunc("/register/start/", controllers.StartRegistration).Methods("POST")
 	auth.HandleFunc("/register/finish/{username}", controllers.FinishRegistration).Methods("POST")
-	auth.HandleFunc("/login/start/", controllers.StartLogin).Methods("POST")
-	auth.HandleFunc("/login/finish/{username}", controllers.FinishLogin).Methods("POST")
-
+	// auth.HandleFunc("/login/start/", controllers.StartLogin).Methods("POST")
+	// auth.HandleFunc("/login/finish/{username}", controllers.FinishLogin).Methods("POST")
 	//Todo replace with SPA frontend
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
 
