@@ -2,6 +2,7 @@ package models
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/duo-labs/webauthn/protocol"
@@ -13,7 +14,6 @@ import (
 //Account A simple user account with authenticators
 type Account struct {
 	gorm.Model
-	ID          string
 	Username    string `json:"username"` //Username or email
 	Name        string `json:"name"`
 	Credentials []Credential
@@ -31,7 +31,6 @@ type Credential struct {
 //NewUser Create a new user in the database
 func NewUser(username string, name string) *Account {
 	user := &Account{}
-	user.ID = randomID()
 	user.Username = name
 	user.Name = username
 	GetDB().Create(user)
@@ -108,7 +107,9 @@ func (a Account) CredentialExcludeList() []protocol.CredentialDescriptor {
 
 //WebAuthnID Get webauthn id
 func (a Account) WebAuthnID() []byte {
-	return []byte(a.ID)
+	buf := make([]byte, binary.MaxVarintLen64)
+	binary.PutUvarint(buf, uint64(a.ID))
+	return buf
 }
 
 //WebAuthnName Return the users username such as email address

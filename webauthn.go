@@ -1,22 +1,17 @@
-package controllers
+package main
 
 import (
 	"encoding/json"
 	"fido_demo/models"
 	"fmt"
-	"github.com/duo-labs/webauthn.io/session"
 	"github.com/duo-labs/webauthn/protocol"
-	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
-var webAuthn *webauthn.WebAuthn
-var sessionStore *session.Store
-
-//StartRegistration checks if username is taken then creates an account
+//BeginRegistration checks if username is taken then creates an account
 //and sends registration data back to the client
-func StartRegistration(w http.ResponseWriter, r *http.Request) {
+func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	//Decode the request
 	decoder := json.NewDecoder(r.Body)
 	var a models.Account
