@@ -32,12 +32,12 @@ func main() {
 
 	router := mux.NewRouter()
 	auth := router.PathPrefix("/auth").Subrouter()
-	auth.HandleFunc("/register/start/", StartRegistration).Methods("POST")
+	auth.HandleFunc("/register/start", StartRegistration).Methods("POST")
 	auth.HandleFunc("/register/finish/{username}", FinishRegistration).Methods("POST")
-	auth.HandleFunc("/login/start/", StartLogin).Methods("POST")
+	auth.HandleFunc("/login/start", StartLogin).Methods("POST")
 	auth.HandleFunc("/login/finish/{username}", FinishLogin).Methods("POST")
-	router.HandleFunc("/todos/", FakeData).Methods("GET")
-	// router.Use(controllers.JwtAuthentication)
+	router.HandleFunc("/todos", FakeData).Methods("GET")
+	router.Use(controllers.EnforceJWTAuth)
 
 	//Todo replace with SPA frontend
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
@@ -46,8 +46,15 @@ func main() {
 	log.Fatal(http.ListenAndServe(serverAddress, router))
 }
 
+type FakeResponse struct {
+	Message string `json:"message"`
+}
+
 func FakeData(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("account").(uint)
-	fmt.Println(user)
-	controllers.JSONResponse(w, "Success", http.StatusOK)
+	user := r.Context().Value("account")
+	fmt.Println("the user", user)
+	resp := FakeResponse{
+		Message: "Hello",
+	}
+	controllers.JSONResponse(w, resp, http.StatusOK)
 }

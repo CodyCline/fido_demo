@@ -50,7 +50,7 @@
       }
 
       $.post(
-        '/auth/register/start/',
+        '/auth/register/start',
         JSON.stringify({ username }),
         function (data) {
           return data
@@ -77,7 +77,7 @@
           let rawId = credential.rawId;
 
           $.post(
-            '/auth/register/finish/' + username,
+            '/auth/register/finish' + username,
             JSON.stringify({
               id: credential.id,
               rawId: bufferEncode(rawId),
@@ -111,7 +111,7 @@
       }
 
       $.post(
-        'auth/login/start/',
+        'auth/login/start',
         JSON.stringify({ username }),
         function (data) {
           return data

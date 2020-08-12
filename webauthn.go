@@ -5,7 +5,6 @@ import (
 	"fido_demo/controllers"
 	"fido_demo/models"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -157,17 +156,15 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//Todo increment counter
 	_, err = webAuthn.FinishLogin(user, sessionData, r)
 	if err != nil {
 		controllers.JSONResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	tk := &models.Token{ID: user.ID}
-	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
-	tokenString, _ := token.SignedString([]byte("TEST"))
 	response := LoginSuccess{
 		Message: "Login Successful",
-		Token:   tokenString,
+		Token:   controllers.CreateJWT(user),
 		Success: true,
 	}
 	controllers.JSONResponse(w, response, http.StatusOK)
