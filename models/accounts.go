@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/jinzhu/gorm"
@@ -26,6 +27,11 @@ type Credential struct {
 	Details    []byte `gorm:"size:2048"`
 	SignCount  uint32
 	FKUsername string
+}
+
+type Token struct {
+	ID uint
+	jwt.StandardClaims
 }
 
 //NewUser Create a new user in the database
