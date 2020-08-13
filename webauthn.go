@@ -82,8 +82,8 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 	// load the session data
 	sessionData, err := sessionStore.GetWebauthnSession("registration", r)
 	if err != nil {
+		controllers.JSONResponse(w, err.Error(), http.StatusInternalServerError)
 		fmt.Println("Session \n", err)
-		controllers.JSONResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 

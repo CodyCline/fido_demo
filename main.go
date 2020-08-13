@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/duo-labs/webauthn.io/session"
 	"github.com/duo-labs/webauthn/webauthn"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -31,6 +32,10 @@ func main() {
 	}
 
 	router := mux.NewRouter()
+	header := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
+	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "HEAD", "OPTIONS"})
+	origins := handlers.AllowedOrigins([]string{"*"})
+
 	auth := router.PathPrefix("/auth").Subrouter()
 	auth.HandleFunc("/register/start", StartRegistration).Methods("POST")
 	auth.HandleFunc("/register/finish/{username}", FinishRegistration).Methods("POST")
@@ -38,12 +43,11 @@ func main() {
 	auth.HandleFunc("/login/finish/{username}", FinishLogin).Methods("POST")
 	router.HandleFunc("/todos", FakeData).Methods("GET")
 	router.Use(controllers.EnforceJWTAuth)
-
 	//Todo replace with SPA frontend
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
 	serverAddress := ":8080"
 	log.Println("starting server at", serverAddress)
-	log.Fatal(http.ListenAndServe(serverAddress, router))
+	log.Fatal(http.ListenAndServe(serverAddress, handlers.CORS(header, methods, origins)(router)))
 }
 
 type FakeResponse struct {

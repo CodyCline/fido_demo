@@ -77,7 +77,7 @@
           let rawId = credential.rawId;
 
           $.post(
-            '/auth/register/finish' + username,
+            '/auth/register/finish/' + username,
             JSON.stringify({
               id: credential.id,
               rawId: bufferEncode(rawId),
