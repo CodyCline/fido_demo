@@ -12,7 +12,7 @@ import (
 	"net/http"
 )
 
-type LoginSuccess struct {
+type Response struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 	Token   string `json:"token"`
@@ -26,7 +26,7 @@ type RegisterChallenge struct {
 
 type LoginChallenge struct {
 	Options     *protocol.CredentialAssertion `json:"options"`
-	SessionData *webauthn.SessionData         `json"session_data"`
+	SessionData *webauthn.SessionData         `json:"session_data"`
 	Username    string                        `json:"username"`
 }
 
@@ -62,7 +62,7 @@ func StartRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Send the session data down to store as cookie in frontend
+	//TODO Find a way to make not expose this private, probably jwt without using session
 
 	resp := RegisterChallenge{
 		Options:     options,
@@ -102,20 +102,25 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	account.AddCredential(*credential)
 
-	controllers.JSONResponse(w, "SUCCESS!", http.StatusOK)
+	response := Response{
+		Message: "Registration Successful",
+		Success: true,
+	}
+
+	controllers.JSONResponse(w, response, http.StatusOK)
 }
 
 //StartLogin gets user by username, checks if it exists and sends data to the client
 func StartLogin(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var a models.Account
-
 	err := decoder.Decode(&a)
 	if err != nil {
 		controllers.JSONResponse(w, fmt.Errorf("Error: please supply a username"), http.StatusBadRequest)
+		return
 	}
 
-	user, err := models.GetUser(a.Username)
+	account, err := models.GetUser(a.Username)
 
 	// user doesn't exist
 	if err != nil {
@@ -124,13 +129,12 @@ func StartLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// generate PublicKeyCredentialRequestOptions, session data
-	options, sessionData, err := webAuthn.BeginLogin(user)
+	options, sessionData, err := webAuthn.BeginLogin(account)
 	if err != nil {
 		controllers.JSONResponse(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// store session data as marshaled JSON
+	//TODO Find a way to make not expose this private, probably jwt without using session
 	resp := LoginChallenge{
 		Options:     options,
 		SessionData: sessionData,
@@ -143,16 +147,18 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
 	session := vars["session"]
-	// decoder := json.NewDecoder(r.Body)
-	raw, e := base64.StdEncoding.DecodeString(session)
-	if e != nil {
-		fmt.Println(e)
+	raw, decodeErr := base64.StdEncoding.DecodeString(session)
+	if decodeErr != nil {
+		fmt.Println("Error decode", decodeErr)
 	}
 	var sess = webauthn.SessionData{}
 	err := json.Unmarshal(raw, &sess)
+	if err != nil {
+		fmt.Println("Err", err)
+	}
 
 	// get user
-	user, err := models.GetUser(username)
+	account, err := models.GetUser(username)
 
 	// user doesn't exist
 	if err != nil {
@@ -160,15 +166,15 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Todo increment counter
-	_, err = webAuthn.FinishLogin(user, sess, r)
+	//Todo increment counter update last used property
+	_, err = webAuthn.FinishLogin(account, sess, r)
 	if err != nil {
-		controllers.JSONResponse(w, err.Error(), http.StatusBadRequest)
+		fmt.Println("Err", err)
 		return
 	}
-	response := LoginSuccess{
+	response := Response{
 		Message: "Login Successful",
-		Token:   controllers.CreateJWT(user),
+		Token:   controllers.CreateJWT(account),
 		Success: true,
 	}
 	controllers.JSONResponse(w, response, http.StatusOK)

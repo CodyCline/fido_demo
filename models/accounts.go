@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/jinzhu/gorm"
@@ -23,15 +22,10 @@ type Account struct {
 //Credential Represents the data from a key in database serialized form
 type Credential struct {
 	gorm.Model
-	AAGUID     []byte `gorm:"size:255"`
-	Details    []byte `gorm:"size:2048"`
-	SignCount  uint32
-	FKUsername string
-}
-
-type Token struct {
-	ID uint
-	jwt.StandardClaims
+	AAGUID    []byte `gorm:"size:255"`
+	Details   []byte `gorm:"size:2048"`
+	SignCount uint32
+	FKUserid  uint
 }
 
 //NewUser Create a new user in the database
@@ -67,13 +61,13 @@ func (a *Account) AddCredential(cred webauthn.Credential) {
 	if err != nil {
 	}
 
-	databaseCred := Credential{
-		Details:    credJSON,
-		FKUsername: a.Username,
-		AAGUID:     cred.Authenticator.AAGUID,
-		SignCount:  cred.Authenticator.SignCount,
+	newCredential := Credential{
+		Details:   credJSON,
+		FKUserid:  a.ID,
+		AAGUID:    cred.Authenticator.AAGUID,
+		SignCount: cred.Authenticator.SignCount,
 	}
-	GetDB().Save(&databaseCred)
+	GetDB().Save(&newCredential)
 
 }
 
@@ -81,7 +75,7 @@ func (a *Account) AddCredential(cred webauthn.Credential) {
 func (a Account) WebAuthnCredentials() []webauthn.Credential {
 	var creds []Credential
 	credentialList := []webauthn.Credential{}
-	GetDB().Table("credentials").Where("fk_username = ?", a.Username).Find(&creds)
+	GetDB().Table("credentials").Where("fk_userid = ?", a.ID).Find(&creds)
 	for _, cred := range creds {
 		oneCred := webauthn.Credential{}
 		json.Unmarshal(cred.Details, &oneCred)
@@ -97,7 +91,7 @@ func (a Account) CredentialExcludeList() []protocol.CredentialDescriptor {
 	credentialExcludeList := []protocol.CredentialDescriptor{}
 	var credentials []Credential
 
-	GetDB().Where("fk_username = ?", a.Username).Find(&credentials)
+	GetDB().Where("fk_userid = ?", a.ID).Find(&credentials)
 
 	for _, cred := range credentials {
 		oneCred := webauthn.Credential{}

@@ -79,5 +79,5 @@ export const Register = () => {
             />
             <button onClick={Register}>Register</button>
         </div>
-    )
+    );
 }
