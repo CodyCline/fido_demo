@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fido_demo/controllers"
 	"fido_demo/models"
 	"fmt"
 	"github.com/duo-labs/webauthn/protocol"
+	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -16,6 +18,18 @@ type LoginSuccess struct {
 	Token   string `json:"token"`
 }
 
+type RegisterChallenge struct {
+	Options     *protocol.CredentialCreation `json:"options"`
+	SessionData *webauthn.SessionData        `json:"session_data"`
+	Username    string                       `json:"username"`
+}
+
+type LoginChallenge struct {
+	Options     *protocol.CredentialAssertion `json:"options"`
+	SessionData *webauthn.SessionData         `json"session_data"`
+	Username    string                        `json:"username"`
+}
+
 //StartRegistration checks if username is taken then creates an account
 //and sends registration data back to the client
 func StartRegistration(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +38,6 @@ func StartRegistration(w http.ResponseWriter, r *http.Request) {
 	var a models.Account
 	err := decoder.Decode(&a)
 	if err != nil {
-
 		controllers.JSONResponse(w, fmt.Errorf("Error: please supply a username"), http.StatusBadRequest)
 		return
 	}
@@ -49,54 +62,47 @@ func StartRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = sessionStore.SaveWebauthnSession("registration", sessionData, r, w)
-	if err != nil {
-		fmt.Println(err)
-		controllers.JSONResponse(w, err.Error(), http.StatusInternalServerError)
-		return
+	//Send the session data down to store as cookie in frontend
+
+	resp := RegisterChallenge{
+		Options:     options,
+		SessionData: sessionData,
 	}
 
-	controllers.JSONResponse(w, options, http.StatusOK)
-
+	controllers.JSONResponse(w, resp, http.StatusOK)
+	return
 }
 
 //FinishRegistration ...
 func FinishRegistration(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 	username := vars["username"]
+	session := vars["session"]
+	// decoder := json.NewDecoder(r.Body)
+	raw, e := base64.StdEncoding.DecodeString(session)
+	if e != nil {
+		fmt.Println(e)
+	}
+	var sess = webauthn.SessionData{}
+	err := json.Unmarshal(raw, &sess)
 
 	// get user
-	account, err := models.GetUser(username)
-	if err != nil {
+	account, notFound := models.GetUser(username)
+	if notFound != nil {
 		controllers.JSONResponse(w, fmt.Errorf("Error: please supply a username"), http.StatusBadRequest)
-	}
-
-	//User doesn't exist
-	if err != nil {
-		fmt.Println(err)
-		controllers.JSONResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// load the session data
-	sessionData, err := sessionStore.GetWebauthnSession("registration", r)
-	if err != nil {
-		controllers.JSONResponse(w, err.Error(), http.StatusInternalServerError)
-		fmt.Println("Session \n", err)
-		return
-	}
-
-	credential, err := webAuthn.FinishRegistration(account, sessionData, r)
+	credential, err := webAuthn.FinishRegistration(account, sess, r)
 	if err != nil {
 		fmt.Println("Finish Register \n", err)
-		controllers.JSONResponse(w, err.Error(), http.StatusBadRequest)
+		controllers.JSONResponse(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	account.AddCredential(*credential)
 
-	controllers.JSONResponse(w, "Registration Success", http.StatusOK)
+	controllers.JSONResponse(w, "SUCCESS!", http.StatusOK)
 }
 
 //StartLogin gets user by username, checks if it exists and sends data to the client
@@ -125,20 +131,25 @@ func StartLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// store session data as marshaled JSON
-	err = sessionStore.SaveWebauthnSession("authentication", sessionData, r, w)
-	if err != nil {
-		controllers.JSONResponse(w, err.Error(), http.StatusInternalServerError)
-		return
+	resp := LoginChallenge{
+		Options:     options,
+		SessionData: sessionData,
 	}
-	controllers.JSONResponse(w, options, http.StatusOK)
+	controllers.JSONResponse(w, resp, http.StatusOK)
 }
 
 //FinishLogin Get user sign off token, increment counter update last used, issue jwt
 func FinishLogin(w http.ResponseWriter, r *http.Request) {
-
-	// get username
 	vars := mux.Vars(r)
 	username := vars["username"]
+	session := vars["session"]
+	// decoder := json.NewDecoder(r.Body)
+	raw, e := base64.StdEncoding.DecodeString(session)
+	if e != nil {
+		fmt.Println(e)
+	}
+	var sess = webauthn.SessionData{}
+	err := json.Unmarshal(raw, &sess)
 
 	// get user
 	user, err := models.GetUser(username)
@@ -149,15 +160,8 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// load the session data
-	sessionData, err := sessionStore.GetWebauthnSession("authentication", r)
-	if err != nil {
-		controllers.JSONResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	//Todo increment counter
-	_, err = webAuthn.FinishLogin(user, sessionData, r)
+	_, err = webAuthn.FinishLogin(user, sess, r)
 	if err != nil {
 		controllers.JSONResponse(w, err.Error(), http.StatusBadRequest)
 		return

@@ -37,18 +37,18 @@ type Token struct {
 //NewUser Create a new user in the database
 func NewUser(username string, name string) *Account {
 	user := &Account{}
-	user.Username = name
-	user.Name = username
+	user.Username = username
+	user.Name = name
 	GetDB().Create(user)
 	return user
 }
 
 //GetUser Get a user from the database using their username
-func GetUser(name string) (*Account, error) {
+func GetUser(username string) (*Account, error) {
 	account := &Account{}
-	GetDB().Table("accounts").Where("name = ?", name).First(account)
+	GetDB().Table("accounts").Where("username = ?", username).First(account)
 	if account.Username == "" {
-		return account, fmt.Errorf("error getting user '%s': does not exist", name)
+		return account, fmt.Errorf("error getting user '%s': does not exist", username)
 	}
 	return account, nil
 }

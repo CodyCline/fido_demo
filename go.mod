@@ -8,5 +8,6 @@ require (
 	github.com/duo-labs/webauthn.io v0.0.0-20200717012147-67203c5c36a7
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.4
+	github.com/gorilla/sessions v1.2.0
 	github.com/jinzhu/gorm v1.9.15
 )
