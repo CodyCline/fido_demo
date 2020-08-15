@@ -15,10 +15,10 @@ import (
 var jwtKey = []byte("256-bit-key")
 
 type Claims struct {
+	jwt.StandardClaims
 	ID       uint
 	Username string `json:"username"`
 	Name     string `json:"name"`
-	jwt.StandardClaims
 }
 
 type JWTResponse struct {
@@ -46,89 +46,84 @@ func CreateJWT(a *models.Account) string {
 	return tokenString
 }
 
-//EnforceJWTAuth is custom middleware to enforce authentication on all routes
-//except the ones in the exclusion list
+//EnforceJWTAuth is custom middleware to enforce authentication on all in the auth required array
 func EnforceJWTAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//List of endpoints that doesn't require auth
 		authRequired := []string{
 			"/todos",
+			"/api/credentials",
 		}
 		requestPath := r.URL.Path //current request path
-
 		//check if request does not need authentication, serve the request if it doesn't need it
 		for _, value := range authRequired {
+			if requestPath == value {
+				tokenHeader := r.Header.Get("Authorization") //Grab the token from the header
 
-			if value != requestPath {
-				next.ServeHTTP(w, r)
+				if tokenHeader == "" { //Token is missing, returns with error code 403 Unauthorized
+					w.WriteHeader(http.StatusForbidden)
+					w.Header().Add("Content-Type", "application/json")
+					response := JWTResponse{
+						StatusCode: 401,
+						Message:    "Missing authentication token",
+					}
+					JSONResponse(w, response, http.StatusUnauthorized)
+					return
+				}
+
+				splitted := strings.Split(tokenHeader, " ") //Split token from `Bearer {token}`
+				if len(splitted) != 2 {
+					w.WriteHeader(http.StatusForbidden)
+					w.Header().Add("Content-Type", "application/json")
+					response := JWTResponse{
+						StatusCode: 403,
+						Message:    "Invalid authentication token",
+					}
+					JSONResponse(w, response, http.StatusForbidden)
+					return
+				}
+
+				tokenPart := splitted[1] //Grab the token
+
+				claims := &Claims{}
+
+				token, err := jwt.ParseWithClaims(tokenPart, claims, func(token *jwt.Token) (interface{}, error) {
+					return []byte(jwtKey), nil
+				})
+
+				//Error decoding the token
+				if err != nil {
+					w.WriteHeader(http.StatusForbidden)
+					w.Header().Add("Content-Type", "application/json")
+					response := JWTResponse{
+						StatusCode: 403,
+						Message:    "Malformed authentication token",
+					}
+					JSONResponse(w, response, http.StatusForbidden)
+					return
+				}
+
+				//Token is invalid, maybe not signed on this server
+				if !token.Valid {
+					w.WriteHeader(http.StatusForbidden)
+					w.Header().Add("Content-Type", "application/json")
+					response := JWTResponse{
+						StatusCode: 403,
+						Message:    "Token is not valid",
+					}
+					JSONResponse(w, response, http.StatusForbidden)
+					return
+				}
+
+				//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
+				ctx := context.WithValue(r.Context(), "account", claims.Username)
+				r = r.WithContext(ctx)
+				next.ServeHTTP(w, r) //proceed in the middleware chain!
 				return
 			}
 		}
-		tokenHeader := r.Header.Get("Authorization") //Grab the token from the header
-
-		if tokenHeader == "" { //Token is missing, returns with error code 403 Unauthorized
-			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type", "application/json")
-			response := JWTResponse{
-				StatusCode: 401,
-				Message:    "Missing authentication token",
-			}
-			JSONResponse(w, response, http.StatusUnauthorized)
-			return
-		}
-
-		splitted := strings.Split(tokenHeader, " ") //Split token from `Bearer {token}`
-		if len(splitted) != 2 {
-			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type", "application/json")
-			response := JWTResponse{
-				StatusCode: 403,
-				Message:    "Invalid authentication token",
-			}
-			JSONResponse(w, response, http.StatusForbidden)
-			return
-		}
-
-		tokenPart := splitted[1] //Grab the token
-
-		fmt.Println(tokenPart)
-		claims := &Claims{}
-
-		token, err := jwt.ParseWithClaims(tokenPart, claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(jwtKey), nil
-		})
-
-		//Error decoding the token
-		if err != nil {
-			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type", "application/json")
-			fmt.Println(err)
-			response := JWTResponse{
-				StatusCode: 403,
-				Message:    "Malformed authentication token",
-			}
-			JSONResponse(w, response, http.StatusForbidden)
-			return
-		}
-
-		//Token is invalid, maybe not signed on this server
-		if !token.Valid {
-			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type", "application/json")
-			response := JWTResponse{
-				StatusCode: 403,
-				Message:    "Token is not valid",
-			}
-			JSONResponse(w, response, http.StatusForbidden)
-			return
-		}
-
-		fmt.Println(claims)
-
-		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
-		ctx := context.WithValue(r.Context(), "account", claims.ID)
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r) //proceed in the middleware chain!
+		next.ServeHTTP(w, r)
+		return
 	})
 }
 

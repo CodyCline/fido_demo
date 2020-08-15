@@ -22,10 +22,10 @@ type Account struct {
 //Credential Represents the data from a key in database serialized form
 type Credential struct {
 	gorm.Model
-	AAGUID    []byte `gorm:"size:255"`
-	Details   []byte `gorm:"size:2048"`
-	SignCount uint32
-	FKUserid  uint
+	AAGUID     []byte `gorm:"size:255"`
+	Details    []byte `gorm:"size:2048"`
+	SignCount  uint32
+	FKUsername string
 }
 
 //NewUser Create a new user in the database
@@ -62,20 +62,31 @@ func (a *Account) AddCredential(cred webauthn.Credential) {
 	}
 
 	newCredential := Credential{
-		Details:   credJSON,
-		FKUserid:  a.ID,
-		AAGUID:    cred.Authenticator.AAGUID,
-		SignCount: cred.Authenticator.SignCount,
+		Details:    credJSON,
+		FKUsername: a.Username,
+		AAGUID:     cred.Authenticator.AAGUID,
+		SignCount:  cred.Authenticator.SignCount,
 	}
 	GetDB().Save(&newCredential)
 
+}
+
+//GetCredentials gets all the credentials associated with the user.
+func GetCredentials(user string) []*Credential {
+	credentials := make([]*Credential, 0)
+	err := GetDB().Table("credentials").Where("fk_username = ?", user).Find(&credentials).Error
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return credentials
 }
 
 //WebAuthnCredentials returns credentials owned by the user
 func (a Account) WebAuthnCredentials() []webauthn.Credential {
 	var creds []Credential
 	credentialList := []webauthn.Credential{}
-	GetDB().Table("credentials").Where("fk_userid = ?", a.ID).Find(&creds)
+	GetDB().Table("credentials").Where("fk_username = ?", a.Username).Find(&creds)
 	for _, cred := range creds {
 		oneCred := webauthn.Credential{}
 		json.Unmarshal(cred.Details, &oneCred)
@@ -91,7 +102,7 @@ func (a Account) CredentialExcludeList() []protocol.CredentialDescriptor {
 	credentialExcludeList := []protocol.CredentialDescriptor{}
 	var credentials []Credential
 
-	GetDB().Where("fk_userid = ?", a.ID).Find(&credentials)
+	GetDB().Where("fk_username = ?", a.Username).Find(&credentials)
 
 	for _, cred := range credentials {
 		oneCred := webauthn.Credential{}

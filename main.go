@@ -2,6 +2,8 @@ package main
 
 import (
 	"fido_demo/controllers"
+	"fido_demo/models"
+	"fmt"
 	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -33,6 +35,7 @@ func main() {
 	auth.HandleFunc("/register/finish/{username}/{session}", FinishRegistration).Methods("POST")
 	auth.HandleFunc("/login/start", StartLogin).Methods("POST")
 	auth.HandleFunc("/login/finish/{username}/{session}", FinishLogin).Methods("POST")
+	router.HandleFunc("/api/credentials", GetCredentialsFor).Methods("GET")
 	router.HandleFunc("/todos", FakeData).Methods("GET")
 	router.Use(controllers.EnforceJWTAuth)
 	//Todo replace with SPA frontend
@@ -52,6 +55,23 @@ func FakeData(w http.ResponseWriter, r *http.Request) {
 	resp := FakeResponse{
 		Message: "Hello",
 		User:    user,
+	}
+	controllers.JSONResponse(w, resp, http.StatusOK)
+}
+
+type CredentialResponse struct {
+	Success     bool                 `json:"success"`
+	Credentials []*models.Credential `json:"credentials"`
+}
+
+//GetCredentialsFor grabs all the credentials associated with the user for the frontend
+func GetCredentialsFor(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value("account").(string)
+	data := models.GetCredentials(user)
+	fmt.Println(data)
+	resp := CredentialResponse{
+		Success:     true,
+		Credentials: data,
 	}
 	controllers.JSONResponse(w, resp, http.StatusOK)
 }

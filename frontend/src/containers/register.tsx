@@ -26,9 +26,9 @@ export const Register = () => {
             })
 
             //Todo remove, will make this jwt
-            let objJSONStr = JSON.stringify(req.data.session_data);
-            let objJSONB64 = Buffer.from(objJSONStr).toString("base64");
-            cookies.set("register-token", objJSONB64)
+            let sessJSON = JSON.stringify(req.data.session_data);
+            let sessB64 = Buffer.from(sessJSON).toString("base64");
+            cookies.set("register-token", sessB64)
             
             //After receiving registration data, decode/mutate response
             let credentialCreationOptions = req.data.options;
