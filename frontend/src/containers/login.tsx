@@ -63,6 +63,7 @@ export const Login = () => {
                 },
             })
             if (finish.data.success) {
+                cookies.set("token", finish.data.token);
                 const todos = await axiosInstance.get('/todos', {
                     headers: {
                         'Authorization': `Basic ${finish.data.token}` 

@@ -7,8 +7,8 @@ import { bufferDecode, bufferEncode } from '../utils/webauthn';
 export const Register = () => {
     const cookies = new Cookies();
     const [inputs, setInputs] = React.useState<any>({
-        name: "name",
-        email: "2@2.com",
+        name: "",
+        email: "",
     });
     const onInputUpdate = (event: any, name: string) => {
         setInputs({
@@ -25,11 +25,12 @@ export const Register = () => {
                 username: inputs.email,
             })
 
-            //After receiving registration data, decode/mutate response
-            console.log(req)
+            //Todo remove, will make this jwt
             let objJSONStr = JSON.stringify(req.data.session_data);
             let objJSONB64 = Buffer.from(objJSONStr).toString("base64");
             cookies.set("register-token", objJSONB64)
+            
+            //After receiving registration data, decode/mutate response
             let credentialCreationOptions = req.data.options;
             let { user, challenge, excludeCredentials } = credentialCreationOptions.publicKey;
             credentialCreationOptions.publicKey.challenge = bufferDecode(challenge);
