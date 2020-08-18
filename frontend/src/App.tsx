@@ -12,7 +12,7 @@ import Cookies from 'universal-cookie';
 
 function App() {
 	const cookies = new Cookies();
-	const [state] = React.useState({
+	const [state, setState] = React.useState({
 		token: cookies.get("token")
 	});
 	return (

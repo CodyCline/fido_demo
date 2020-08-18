@@ -2,26 +2,33 @@ import * as React from 'react';
 import Cookies from 'universal-cookie';
 import { axiosInstance } from '../utils/axios';
 import { Input } from '../components/input/input';
+import { Button } from '../components/button/button';
 import { bufferDecode, bufferEncode } from '../utils/webauthn';
+import { Redirect, useHistory } from 'react-router-dom';
 
 export const Login = () => {
+    const history = useHistory();
     const cookies = new Cookies();
-    const [inputs, setInputs] = React.useState<any>({
-        email: "2@2.com",
-    });
-    const onInputUpdate = (event: any, name: string) => {
-        setInputs({
-            ...inputs,
-            [name]: event.target.value
+    const [state, setState] = React.useState<any>({
+        email: "",
+        loggingIn: false,
+        mainError: "",
+    })
+    const onInputUpdate = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setState({
+            ...state,
+            [event.target.name]: event.target.value
         });
     }
 
     const Login = async () => {
-        //Contact api and login
+        //Contact api and start login process
         try {
             const start = await axiosInstance.post("/auth/login/start", {
-                username: inputs.email,
+                username: state.email,
             })
+
+            //If username exists handle here
 
             //After receiving login challenge, decode/mutate response
             let stringSession = JSON.stringify(start.data.session_data);
@@ -30,7 +37,7 @@ export const Login = () => {
             let credentialRequestOptions = start.data.options;
             let { challenge, allowCredentials } = credentialRequestOptions.publicKey;
             credentialRequestOptions.publicKey.challenge = bufferDecode(challenge);
-            allowCredentials.map((listItem:any) => {
+            allowCredentials.map((listItem: any) => {
                 listItem.id = bufferDecode(listItem.id)
             })
             //Call browser to insert key
@@ -51,7 +58,7 @@ export const Login = () => {
                     userHandle: bufferEncode(userHandle),
                 },
             })
-            const finish = await axiosInstance.post(`/auth/login/finish/${inputs.email}/${sessionData}`, {
+            const finish = await axiosInstance.post(`/auth/login/finish/${state.email}/${sessionData}`, {
                 id: assertion.id,
                 rawId: bufferEncode(assertion.rawId),
                 type: assertion.type,
@@ -63,30 +70,37 @@ export const Login = () => {
                 },
             })
             if (finish.data.success) {
-                cookies.set("token", finish.data.token);
-                const todos = await axiosInstance.get('/todos', {
-                    headers: {
-                        'Authorization': `Basic ${finish.data.token}` 
-                    }
-                })
-                console.log(todos)
+                //Remove any cookies
+                await cookies.set("token", finish.data.token);
             }
+            setTimeout(() => history.push("/profile"), 3000)
         } catch (error) {
             console.log(error);
+            setState({
+                ...state, 
+                mainError: `Error: ${error.message}`,
+            })
         }
     }
 
     return (
-        <div>
-            <h1>Login</h1>
-
-            <p>Email</p>
-            <Input
-                name="email"
-                onChange={(event: any) => onInputUpdate(event, "email")}
-                value={inputs.email}
-            />
-            <button onClick={Login}>Login</button>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
+            <div style={{ flex: "0 1 350px", margin: "5px"}}>
+                <h1>Login</h1>
+                <Input
+                    label="Email or username"
+                    name="email"
+                    // validationText="Cannot be blank"
+                    placeHolder="email@example.com"
+                    onChange={onInputUpdate}
+                    value={state.email}
+                />
+                <div style={{height: "20px"}}/>
+                <Button onClick={Login}>
+                    {state.loggingIn? "Hold on ..." : "Sign in without password"}
+                </Button>
+                <p className="validation-text">{state.mainError}</p>
+            </div>
         </div>
     );
 }

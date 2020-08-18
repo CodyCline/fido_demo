@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Route, Redirect, useHistory } from 'react-router-dom';
-import Cookies from 'universal-cookie'
+import { Redirect } from 'react-router-dom';
 
 
 

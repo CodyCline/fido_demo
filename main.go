@@ -36,6 +36,9 @@ func main() {
 	auth.HandleFunc("/login/start", StartLogin).Methods("POST")
 	auth.HandleFunc("/login/finish/{username}/{session}", FinishLogin).Methods("POST")
 	router.HandleFunc("/api/credentials", GetCredentialsFor).Methods("GET")
+	// router.HandleFunc("/api/credentials/{id}", GetCredentialsFor).Methods("PUT")
+	// router.HandleFunc("/api/credentials", GetCredentialsFor).Methods("DELETE")
+	router.HandleFunc("/api/profile", GetUserProfile).Methods("GET")
 	router.HandleFunc("/todos", FakeData).Methods("GET")
 	router.Use(controllers.EnforceJWTAuth)
 	//Todo replace with SPA frontend
@@ -51,7 +54,7 @@ type FakeResponse struct {
 }
 
 func FakeData(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("account")
+	user := r.Context().Value("account").(string)
 	resp := FakeResponse{
 		Message: "Hello",
 		User:    user,
@@ -74,4 +77,16 @@ func GetCredentialsFor(w http.ResponseWriter, r *http.Request) {
 		Credentials: data,
 	}
 	controllers.JSONResponse(w, resp, http.StatusOK)
+	return
+}
+
+func GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value("account").(string)
+	account, err := models.GetUser(user)
+	if err != nil {
+		controllers.JSONResponse(w, err, http.StatusInternalServerError)
+		return
+	}
+	controllers.JSONResponse(w, account, http.StatusOK)
+	return
 }

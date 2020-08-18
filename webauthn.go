@@ -62,7 +62,7 @@ func StartRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO Find a way to make not expose this private, probably jwt without using session
+	//Todo send the session id back down to client or jwt
 
 	resp := RegisterChallenge{
 		Options:     options,

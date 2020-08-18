@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { axiosAuth } from '../utils/axios';
-
+import { Credential } from '../components/credential/credential';
 
 export const Credentials = () => {
     const [state, setState] = React.useState<any>({
@@ -11,7 +11,6 @@ export const Credentials = () => {
         async function getCreds() {
             try {
                 const req = await axiosAuth.get("/api/credentials")
-                console.log(req);
                 setState({
                     ...state,
                     credentials: req.data.credentials,
@@ -24,20 +23,18 @@ export const Credentials = () => {
         getCreds();
     }, []);
     return (
-        <div>
-            Your Credentials
-            {state.loaded ?
-                state.credentials.map((cred: any, inc: number) => {
-                    return (
-                        <div style={{ border: "5px solid green" }} key={inc}>
-                            <p>Nickname: {cred.name}</p>
-                            <p>Last used: {cred.last_used}</p>
-                            <p>Times used: {cred.counter}</p>
-                        </div>
-                    )
-                })
-                : <p>LOading</p>
-            }
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
+            <div style={{ flex: "0 1 700px", margin: "5px" }}>
+                <h1>Credentials</h1>
+                {state.loaded ?
+                    state.credentials.map((cred: any, inc: number) => {
+                        return (
+                            <Credential key={inc}/>
+                        )
+                    })
+                    : <p>LOading</p>
+                }
+            </div>
         </div>
     )
 }

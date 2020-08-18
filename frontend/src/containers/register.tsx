@@ -2,6 +2,7 @@ import * as React from 'react';
 import Cookies from 'universal-cookie';
 import { axiosInstance } from '../utils/axios';
 import { Input } from '../components/input/input';
+import { Button } from '../components/button/button';
 import { bufferDecode, bufferEncode } from '../utils/webauthn';
 
 export const Register = () => {
@@ -10,10 +11,10 @@ export const Register = () => {
         name: "",
         email: "",
     });
-    const onInputUpdate = (event: any, name: string) => {
+    const onInputUpdate = (event: React.ChangeEvent<HTMLInputElement>) => {
         setInputs({
             ...inputs,
-            [name]: event.target.value
+            [event.target.name]: event.target.value
         });
     }
 
@@ -29,7 +30,7 @@ export const Register = () => {
             let sessJSON = JSON.stringify(req.data.session_data);
             let sessB64 = Buffer.from(sessJSON).toString("base64");
             cookies.set("register-token", sessB64)
-            
+
             //After receiving registration data, decode/mutate response
             let credentialCreationOptions = req.data.options;
             let { user, challenge, excludeCredentials } = credentialCreationOptions.publicKey;
@@ -63,22 +64,30 @@ export const Register = () => {
     }
 
     return (
-        <div>
-            <h1>Register</h1>
-
-            <p>Name</p>
-            <Input
-                name="name"
-                onChange={(event: any) => onInputUpdate(event, "name")}
-                value={inputs.name}
-            />
-            <p>Email</p>
-            <Input
-                name="email"
-                onChange={(event: any) => onInputUpdate(event, "email")}
-                value={inputs.email}
-            />
-            <button onClick={Register}>Register</button>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
+            <div style={{ flex: "0 1 350px", margin: "5px" }}>
+                <h1>Register</h1>
+                <Input
+                    label="Name"
+                    name="name"
+                    placeHolder="Test User"
+                    onChange={onInputUpdate}
+                    value={inputs.name}
+                />
+                <Input
+                    label="Email or username"
+                    name="email"
+                    // validationText="Cannot be blank"
+                    placeHolder="email@example.com"
+                    onChange={onInputUpdate}
+                    value={inputs.email}
+                />
+                <div style={{height: "20px"}}/>
+                <Button onClick={Register}>
+                    Register account
+                </Button>
+                {/* <p className="validation-text">{state.mainError}</p> */}
+            </div>
         </div>
     );
 }

@@ -53,6 +53,7 @@ func EnforceJWTAuth(next http.Handler) http.Handler {
 		authRequired := []string{
 			"/todos",
 			"/api/credentials",
+			"/api/profile",
 		}
 		requestPath := r.URL.Path //current request path
 		//check if request does not need authentication, serve the request if it doesn't need it
