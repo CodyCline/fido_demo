@@ -124,7 +124,11 @@ func StartLogin(w http.ResponseWriter, r *http.Request) {
 
 	// user doesn't exist
 	if err != nil {
-		controllers.JSONResponse(w, "Error: cannot find username", http.StatusBadRequest)
+		res := Response{
+			Success: false,
+			Message: "Cannot find username",
+		}
+		controllers.JSONResponse(w, res, http.StatusNotFound)
 		return
 	}
 
@@ -140,6 +144,7 @@ func StartLogin(w http.ResponseWriter, r *http.Request) {
 		SessionData: sessionData,
 	}
 	controllers.JSONResponse(w, resp, http.StatusOK)
+	return
 }
 
 //FinishLogin Get user sign off token, increment counter update last used, issue jwt
@@ -178,4 +183,5 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 		Success: true,
 	}
 	controllers.JSONResponse(w, response, http.StatusOK)
+	return
 }

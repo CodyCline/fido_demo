@@ -4,26 +4,22 @@ import { axiosInstance } from '../utils/axios';
 import { Input } from '../components/input/input';
 import { Button } from '../components/button/button';
 import { bufferDecode, bufferEncode } from '../utils/webauthn';
+import { useForm } from '../utils/useForm/useForm';
+import { validate } from '../utils/useForm/registerValidations';
 
 export const Register = () => {
     const cookies = new Cookies();
-    const [inputs, setInputs] = React.useState<any>({
+    const [state] = React.useState<any>({
         name: "",
-        email: "",
+        username: "",
     });
-    const onInputUpdate = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setInputs({
-            ...inputs,
-            [event.target.name]: event.target.value
-        });
-    }
 
-    const Register = async () => {
+    const register = async () => {
         //Contact api and register
         try {
             const req = await axiosInstance.post("/auth/register/start", {
-                name: inputs.name,
-                username: inputs.email,
+                name: values.name,
+                username: values.email,
             })
 
             //Todo remove, will make this jwt
@@ -48,7 +44,7 @@ export const Register = () => {
             const sessionData = cookies.get("register-token")
             console.log(credential)
             let { attestationObject, clientDataJSON, rawId } = credential.response;
-            const success = await axiosInstance.post(`/auth/register/finish/${inputs.email}/${sessionData}`, {
+            const success = await axiosInstance.post(`/auth/register/finish/${values.email}/${sessionData}`, {
                 id: credential.id,
                 rawId: bufferEncode(rawId),
                 type: credential.type,
@@ -63,6 +59,12 @@ export const Register = () => {
         }
     }
 
+    const { values, errors, handleChange, handleSubmit } = useForm(
+        state,
+        register,
+        validate
+    );
+
     return (
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
             <div style={{ flex: "0 1 350px", margin: "5px" }}>
@@ -71,19 +73,20 @@ export const Register = () => {
                     label="Name"
                     name="name"
                     placeHolder="Test User"
-                    onChange={onInputUpdate}
-                    value={inputs.name}
+                    onChange={handleChange}
+                    value={values.name}
+                    validationText={errors.name}
                 />
                 <Input
                     label="Email or username"
                     name="email"
-                    // validationText="Cannot be blank"
+                    validationText={errors.username}
                     placeHolder="email@example.com"
-                    onChange={onInputUpdate}
-                    value={inputs.email}
+                    onChange={handleChange}
+                    value={values.username}
                 />
                 <div style={{height: "20px"}}/>
-                <Button onClick={Register}>
+                <Button onClick={handleSubmit}>
                     Register account
                 </Button>
                 {/* <p className="validation-text">{state.mainError}</p> */}

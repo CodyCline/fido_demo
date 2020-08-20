@@ -1,9 +1,9 @@
 .input-block {
-    /* padding: 1em 0 1em 0; */
+    margin: 1.5em 0 1.5em 0;
 }
 
 .input {
-    margin: 10px 0 10px 0;
+    margin: 10px 0 5px 0;
     box-sizing: border-box;
     width: 100%;
     background: #e4e4f0;

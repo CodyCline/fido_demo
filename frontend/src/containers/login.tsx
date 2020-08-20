@@ -4,36 +4,31 @@ import { axiosInstance } from '../utils/axios';
 import { Input } from '../components/input/input';
 import { Button } from '../components/button/button';
 import { bufferDecode, bufferEncode } from '../utils/webauthn';
-import { Redirect, useHistory } from 'react-router-dom';
+import { useForm } from '../utils/useForm/useForm';
+import { validate } from '../utils/useForm/loginValidations';
 
 export const Login = () => {
-    const history = useHistory();
     const cookies = new Cookies();
-    const [state, setState] = React.useState<any>({
-        email: "",
+    const [state] = React.useState<any>({
+        username: "",
         loggingIn: false,
-        mainError: "",
-    })
-    const onInputUpdate = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setState({
-            ...state,
-            [event.target.name]: event.target.value
-        });
-    }
+    });
+    const [err, setErr] = React.useState<string>("");
 
-    const Login = async () => {
+    const login = async () => {
         //Contact api and start login process
         try {
             const start = await axiosInstance.post("/auth/login/start", {
-                username: state.email,
+                username: values.username,
             })
 
-            //If username exists handle here
 
-            //After receiving login challenge, decode/mutate response
+            //Todo remove            
             let stringSession = JSON.stringify(start.data.session_data);
             let base64Session = Buffer.from(stringSession).toString("base64");
+
             cookies.set("login-token", base64Session)
+            //After receiving login challenge, decode/mutate response
             let credentialRequestOptions = start.data.options;
             let { challenge, allowCredentials } = credentialRequestOptions.publicKey;
             credentialRequestOptions.publicKey.challenge = bufferDecode(challenge);
@@ -58,7 +53,7 @@ export const Login = () => {
                     userHandle: bufferEncode(userHandle),
                 },
             })
-            const finish = await axiosInstance.post(`/auth/login/finish/${state.email}/${sessionData}`, {
+            const finish = await axiosInstance.post(`/auth/login/finish/${values.username}/${sessionData}`, {
                 id: assertion.id,
                 rawId: bufferEncode(assertion.rawId),
                 type: assertion.type,
@@ -70,18 +65,23 @@ export const Login = () => {
                 },
             })
             if (finish.data.success) {
-                //Remove any cookies
+                //Remove any cookies redirect, set state.
                 await cookies.set("token", finish.data.token);
             }
-            setTimeout(() => history.push("/profile"), 3000)
         } catch (error) {
-            console.log(error);
-            setState({
-                ...state, 
-                mainError: `Error: ${error.message}`,
-            })
+            if (!error.response.data.success) { //Axios error
+                setErr(error.response.data.message);
+            } else {
+                setErr("Something went wrong try again soon");
+            }
         }
     }
+
+    const { values, errors, handleChange, handleSubmit } = useForm(
+        state,
+        login,
+        validate
+    );
 
     return (
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
@@ -89,17 +89,15 @@ export const Login = () => {
                 <h1>Login</h1>
                 <Input
                     label="Email or username"
-                    name="email"
-                    // validationText="Cannot be blank"
+                    name="username"
+                    validationText={errors.username}
                     placeHolder="email@example.com"
-                    onChange={onInputUpdate}
-                    value={state.email}
+                    onChange={handleChange}
+                    value={values.username}
                 />
                 <div style={{height: "20px"}}/>
-                <Button onClick={Login}>
-                    {state.loggingIn? "Hold on ..." : "Sign in without password"}
-                </Button>
-                <p className="validation-text">{state.mainError}</p>
+                <Button onClick={handleSubmit}>Sign in without password</Button>
+                <p className="validation-text">{err}</p>
             </div>
         </div>
     );
