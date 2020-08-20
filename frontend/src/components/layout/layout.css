@@ -1,0 +1,9 @@
+.layout {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+}
+
+.navbar {
+    background: #CCC;
+    padding: 1em;
+}

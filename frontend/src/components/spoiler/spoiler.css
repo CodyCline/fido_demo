@@ -1,0 +1,33 @@
+.spoiler {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 100%;
+    height: auto;
+    margin: 1em 0 1em 0;
+}
+
+.spoiler-header {
+    background: #ccc;
+    display: flex;
+    flex-direction: row;
+    cursor: pointer;
+    justify-content: space-between;
+    padding: 10px 25px 10px 25px;
+    list-style: none;
+    margin: 0;
+}
+
+.spoiler-body {
+    padding: 25px;
+    width: inherit;
+    height: auto;
+    box-sizing: border-box;
+    border: 1px solid #CCC;
+}
+
+.spoiler-icon {
+    height: 1em;
+    width: 1em;
+    color: black;
+}
