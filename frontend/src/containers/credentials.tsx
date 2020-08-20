@@ -17,7 +17,10 @@ export const Credentials = () => {
                     loaded: true,
                 });
             } catch (error) {
-
+                setState({
+                    ...state,
+                    errors: true,
+                })
             }
         }
         getCreds();
@@ -32,7 +35,7 @@ export const Credentials = () => {
                             <Credential key={inc}/>
                         )
                     })
-                    : <p>LOading</p>
+                    : <p>{state.errors ? "Error getting credentials" : "Loading ..."}</p>
                 }
             </div>
         </div>

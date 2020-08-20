@@ -6,9 +6,12 @@ import { Button } from '../components/button/button';
 import { bufferDecode, bufferEncode } from '../utils/webauthn';
 import { useForm } from '../utils/useForm/useForm';
 import { validate } from '../utils/useForm/registerValidations';
+import { useHistory } from 'react-router-dom';
 
 export const Register = () => {
-    const cookies = new Cookies();
+    const cookies: Cookies = new Cookies();
+    const history = useHistory();
+    const [err, setErr] = React.useState<string>("")
     const [state] = React.useState<any>({
         name: "",
         username: "",
@@ -19,7 +22,7 @@ export const Register = () => {
         try {
             const req = await axiosInstance.post("/auth/register/start", {
                 name: values.name,
-                username: values.email,
+                username: values.username,
             })
 
             //Todo remove, will make this jwt
@@ -44,7 +47,7 @@ export const Register = () => {
             const sessionData = cookies.get("register-token")
             console.log(credential)
             let { attestationObject, clientDataJSON, rawId } = credential.response;
-            const success = await axiosInstance.post(`/auth/register/finish/${values.email}/${sessionData}`, {
+            const success = await axiosInstance.post(`/auth/register/finish/${values.username}/${sessionData}`, {
                 id: credential.id,
                 rawId: bufferEncode(rawId),
                 type: credential.type,
@@ -53,9 +56,13 @@ export const Register = () => {
                     clientDataJSON: bufferEncode(clientDataJSON),
                 },
             })
-            console.log("Success\n", success);
+            history.push("/login")
         } catch (error) {
-            console.log(error);
+            if (error.response) { //Axios error
+                setErr(error.response.data.message);
+            } else {
+                setErr("Something went wrong try again soon");
+            }
         }
     }
 
@@ -79,7 +86,7 @@ export const Register = () => {
                 />
                 <Input
                     label="Email or username"
-                    name="email"
+                    name="username"
                     validationText={errors.username}
                     placeHolder="email@example.com"
                     onChange={handleChange}
@@ -89,7 +96,7 @@ export const Register = () => {
                 <Button onClick={handleSubmit}>
                     Register account
                 </Button>
-                {/* <p className="validation-text">{state.mainError}</p> */}
+                <p className="error">{err}</p>
             </div>
         </div>
     );
