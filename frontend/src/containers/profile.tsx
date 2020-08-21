@@ -2,8 +2,10 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { axiosAuth } from '../utils/axios';
 import { ReactComponent as Key } from '../assets/key-solid.svg';
+import Cookies from 'universal-cookie';
 
 export const Profile = () => {
+    const cookies = new Cookies();
     const [state, setState] = React.useState<any>({
         username: "",
         name: "",
@@ -13,7 +15,11 @@ export const Profile = () => {
     React.useEffect(() => {
         async function getCreds() {
             try {
-                const req = await axiosAuth.get("/api/profile")
+                const req = await axiosAuth.get("/api/profile", {
+                    headers: {
+                        Authorization: `Bearer ${cookies.get("token")}`
+                    }
+                })
                 setState({
                     ...state,
                     username: req.data.username,
@@ -27,6 +33,7 @@ export const Profile = () => {
                 })
             }
         }
+        // setTimeout(getCreds, 3000);
         getCreds()
     }, []);
     return (

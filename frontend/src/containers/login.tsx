@@ -7,6 +7,7 @@ import { bufferDecode, bufferEncode } from '../utils/webauthn';
 import { useForm } from '../utils/useForm/useForm';
 import { validate } from '../utils/useForm/loginValidations';
 import { useHistory } from 'react-router-dom';
+import  { axiosAuth } from '../utils/axios';
 
 export const Login = () => {
     const cookies = new Cookies();
@@ -67,7 +68,7 @@ export const Login = () => {
             if (finish.data.success) {
                 //Remove any cookies redirect, set state.
                 await cookies.set("token", finish.data.token);
-                history.push("/profile");
+                await history.push("/profile");
             }
         } catch (error) {
             console.log("ERROR", error);

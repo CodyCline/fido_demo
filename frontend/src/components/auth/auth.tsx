@@ -6,10 +6,10 @@ import Cookies from 'universal-cookie';
 
 export const AuthRequired = ({ isAuthenticated, children }: any) => {
     const cookies = new Cookies();
-    const [isAuth, setAuth] = React.useState(cookies.get("token"))
+    const [isAuth, setAuth] = React.useState(cookies.get("token"));
     React.useEffect(() => {
         if( cookies.get("token") ) {
-            setAuth(true);
+            // setAuth(true);
         }
         
         console.log("HELLO")
