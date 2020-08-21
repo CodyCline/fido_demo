@@ -10,12 +10,9 @@ import { Credentials } from './containers/credentials';
 import './App.css';
 import Cookies from 'universal-cookie';
 
-
 function App() {
 	const cookies = new Cookies();
-	const [state, setState] = React.useState({
-		token: cookies.get("token")
-	});
+	
 	return (
 		<Layout>
 			<Switch>
@@ -23,7 +20,7 @@ function App() {
 				<Route path="/login" component={Login} />
 				<Route path="/register" component={Register} />
 				{/* Requires authentication */}
-				<AuthRequired isAuthenticated={state.token}>
+				<AuthRequired>
 					<Route path="/profile" component={Profile} />
 					<Route path="/credentials" component={Credentials} />
 				</AuthRequired>

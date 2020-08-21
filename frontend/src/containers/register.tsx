@@ -26,7 +26,7 @@ export const Register = () => {
             })
 
             if (req.data.success == false) {
-                console.log(req)
+                //If username is taken
                 return setErr(req.data.message)
             }
 
@@ -63,7 +63,7 @@ export const Register = () => {
             })
             history.push("/login")
         } catch (error) {
-            console.log("E", error);
+            console.log(error);
             if (error.response) { //Axios error
                 setErr(error.response.data.message);
             } else {
@@ -72,6 +72,7 @@ export const Register = () => {
         }
     }
 
+    //Hook to handle client side validation
     const { values, errors, handleChange, handleSubmit } = useForm(
         state,
         register,
@@ -102,7 +103,7 @@ export const Register = () => {
                 <Button onClick={handleSubmit}>
                     Register account
                 </Button>
-                <p className="error">{err}</p>
+                <p className="validation-text">{err}</p>
             </div>
         </div>
     );

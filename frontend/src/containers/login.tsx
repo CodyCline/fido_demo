@@ -6,9 +6,11 @@ import { Button } from '../components/button/button';
 import { bufferDecode, bufferEncode } from '../utils/webauthn';
 import { useForm } from '../utils/useForm/useForm';
 import { validate } from '../utils/useForm/loginValidations';
+import { useHistory } from 'react-router-dom';
 
 export const Login = () => {
     const cookies = new Cookies();
+    const history = useHistory();
     const [state] = React.useState<any>({
         username: "",
         loggingIn: false,
@@ -21,8 +23,6 @@ export const Login = () => {
             const start = await axiosInstance.post("/auth/login/start", {
                 username: values.username,
             })
-
-
             //Todo remove            
             let stringSession = JSON.stringify(start.data.session_data);
             let base64Session = Buffer.from(stringSession).toString("base64");
@@ -67,10 +67,11 @@ export const Login = () => {
             if (finish.data.success) {
                 //Remove any cookies redirect, set state.
                 await cookies.set("token", finish.data.token);
+                history.push("/profile");
             }
         } catch (error) {
             console.log("ERROR", error);
-            if (error.response.data) { //Axios error
+            if (error.response) { //Axios error
                 setErr(error.response.data.message);
             } else {
                 setErr("Something went wrong try again soon");
