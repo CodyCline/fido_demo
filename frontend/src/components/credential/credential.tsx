@@ -10,7 +10,7 @@ export const Credential = ({name, lastUsed, useCount} :any) => {
                 <Key style={{height: "40px", color: "#CCC"}}/>
             </div>
             <div className="credential-info">
-                <h3>{name || "Default"}</h3>
+                <h3>{name || "Default Credential"}</h3>
                 <p>Last used: {lastUsed || "Never"}</p>
                 <p>Times used: {useCount || 0}</p>
             </div>

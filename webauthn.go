@@ -167,16 +167,19 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 
 	// user doesn't exist
 	if err != nil {
-		controllers.JSONResponse(w, err.Error(), http.StatusBadRequest)
+		controllers.JSONResponse(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	//Todo increment counter update last used property
-	_, err = webAuthn.FinishLogin(account, sess, r)
+	credential, err := webAuthn.FinishLogin(account, sess, r)
 	if err != nil {
 		fmt.Println("Err", err)
 		return
 	}
+
+	models.UpdateCredential(credential.Authenticator.AAGUID, credential.Authenticator.SignCount)
+
 	response := Response{
 		Message: "Login Successful",
 		Token:   controllers.CreateJWT(account),
