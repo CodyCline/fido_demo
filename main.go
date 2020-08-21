@@ -65,9 +65,13 @@ func GetCredentialsFor(w http.ResponseWriter, r *http.Request) {
 
 func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value("account").(string)
-	account, err := models.GetUser(user)
-	if err != nil {
-		controllers.JSONResponse(w, err, http.StatusInternalServerError)
+	account := models.GetUser(user)
+	if account == nil {
+		res := Response{
+			Success: false,
+			Message: "Error user not found, something went wrong",
+		}
+		controllers.JSONResponse(w, res, http.StatusInternalServerError)
 		return
 	}
 	controllers.JSONResponse(w, account, http.StatusOK)

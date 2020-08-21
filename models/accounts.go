@@ -2,7 +2,6 @@ package models
 
 import (
 	"crypto/rand"
-	"fmt"
 	_ "github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"time"
@@ -36,13 +35,13 @@ func NewUser(username string, name string) *Account {
 }
 
 //GetUser Get a user from the database using their username
-func GetUser(username string) (*Account, error) {
+func GetUser(username string) *Account {
 	account := &Account{}
 	GetDB().Table("accounts").Where("username = ?", username).First(account)
 	if account.Username == "" {
-		return account, fmt.Errorf("error getting user '%s': does not exist", username)
+		return nil
 	}
-	return account, nil
+	return account
 }
 
 func randomID() string {

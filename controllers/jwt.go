@@ -21,11 +21,13 @@ type Claims struct {
 	Name     string `json:"name"`
 }
 
-type JWTResponse struct {
+//AuthResponse is a middleware response typically indicating there is a improper or lack of token
+type AuthResponse struct {
 	StatusCode int    `json:"status_code"`
 	Message    string `json:"message"`
 }
 
+//CreateJWT issues a token with username as claims
 func CreateJWT(a *models.Account) string {
 	t, err := strconv.ParseUint("60", 10, 32)
 	expirationTime := time.Now().Add(time.Duration(t) * time.Minute)
@@ -64,7 +66,7 @@ func EnforceJWTAuth(next http.Handler) http.Handler {
 				if tokenHeader == "" { //Token is missing, returns with error code 403 Unauthorized
 					w.WriteHeader(http.StatusForbidden)
 					w.Header().Add("Content-Type", "application/json")
-					response := JWTResponse{
+					response := AuthResponse{
 						StatusCode: 401,
 						Message:    "Missing authentication token",
 					}
@@ -76,7 +78,7 @@ func EnforceJWTAuth(next http.Handler) http.Handler {
 				if len(splitted) != 2 {
 					w.WriteHeader(http.StatusForbidden)
 					w.Header().Add("Content-Type", "application/json")
-					response := JWTResponse{
+					response := AuthResponse{
 						StatusCode: 403,
 						Message:    "Invalid authentication token",
 					}
@@ -96,9 +98,9 @@ func EnforceJWTAuth(next http.Handler) http.Handler {
 				if err != nil {
 					w.WriteHeader(http.StatusForbidden)
 					w.Header().Add("Content-Type", "application/json")
-					response := JWTResponse{
+					response := AuthResponse{
 						StatusCode: 403,
-						Message:    "Malformed authentication token",
+						Message:    "Malformed or expired authentication token",
 					}
 					JSONResponse(w, response, http.StatusForbidden)
 					return
@@ -108,7 +110,7 @@ func EnforceJWTAuth(next http.Handler) http.Handler {
 				if !token.Valid {
 					w.WriteHeader(http.StatusForbidden)
 					w.Header().Add("Content-Type", "application/json")
-					response := JWTResponse{
+					response := AuthResponse{
 						StatusCode: 403,
 						Message:    "Token is not valid",
 					}

@@ -19,6 +19,7 @@ type Response struct {
 }
 
 type RegisterChallenge struct {
+	Success     bool                         `json:"success"`
 	Options     *protocol.CredentialCreation `json:"options"`
 	SessionData *webauthn.SessionData        `json:"session_data"`
 	Username    string                       `json:"username"`
@@ -43,10 +44,16 @@ func StartRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Check if account exists
-	account, err := models.GetUser(a.Username)
-	if err != nil {
-		account = models.NewUser(a.Username, "Test Name")
+	account := models.GetUser(a.Username)
+	if account != nil {
+		res := Response{
+			Success: false,
+			Message: "Username already taken",
+		}
+		controllers.JSONResponse(w, res, http.StatusOK)
+		return
 	}
+	account = models.NewUser(a.Username, "Test Name")
 
 	registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
 		credCreationOpts.CredentialExcludeList = account.CredentialExcludeList()
@@ -87,8 +94,8 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 	err := json.Unmarshal(raw, &sess)
 
 	// get user
-	account, notFound := models.GetUser(username)
-	if notFound != nil {
+	account := models.GetUser(username)
+	if account == nil {
 		controllers.JSONResponse(w, fmt.Errorf("Error: please supply a username"), http.StatusBadRequest)
 		return
 	}
@@ -120,10 +127,10 @@ func StartLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account, err := models.GetUser(a.Username)
+	account := models.GetUser(a.Username)
 
 	// user doesn't exist
-	if err != nil {
+	if account == nil {
 		res := Response{
 			Success: false,
 			Message: "Cannot find username",
@@ -163,10 +170,10 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get user
-	account, err := models.GetUser(username)
+	account := models.GetUser(username)
 
 	// user doesn't exist
-	if err != nil {
+	if account == nil {
 		controllers.JSONResponse(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

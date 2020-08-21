@@ -69,6 +69,7 @@ export const Login = () => {
                 await cookies.set("token", finish.data.token);
             }
         } catch (error) {
+            console.log("ERROR", error);
             if (error.response.data) { //Axios error
                 setErr(error.response.data.message);
             } else {
