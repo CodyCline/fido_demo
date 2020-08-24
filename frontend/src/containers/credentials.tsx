@@ -32,20 +32,23 @@ export const Credentials = () => {
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
             <div style={{ flex: "0 1 800px", margin: "5px" }}>
                 <h1>Credentials</h1>
-                <div style={{display:"flex", flexDirection:"row"}}>
+                <div>
                     <Input
-                        style={{width: "75%"}} 
                         label="Add another credential in case you lose one."
                         placeHolder="Name for credential (e.g. bluetooth key)"
                     />
-                    <Button>Add</Button>
+                    <Button style={{width:"100px"}}>Add</Button>
                 </div>
-                
                 {state.loaded ?
                     state.credentials.map((cred: any, inc: number) => {
                         const updated = new Date(cred.updated_at)
                         return (
-                            <Credential key={cred.id} lastUsed={updated.toLocaleString()} useCount={cred.sign_count} />
+                            <Credential 
+                                key={cred.id} 
+                                lastUsed={updated.toLocaleString()} 
+                                useCount={cred.sign_count} 
+                                //Onclick to delete
+                            />
                         )
                     })
                     : <p>{state.errors ? "Error getting credentials" : "Loading ..."}</p>

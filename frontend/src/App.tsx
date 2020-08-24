@@ -11,8 +11,6 @@ import './App.css';
 import Cookies from 'universal-cookie';
 
 function App() {
-	const cookies = new Cookies();
-	
 	return (
 		<Layout>
 			<Switch>

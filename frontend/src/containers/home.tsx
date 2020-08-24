@@ -15,9 +15,13 @@ export const Home = () => {
                     There are many manufacturers of hardware keys.
                         Some popular choices are the <a href="https://store.google.com/product/titan_security_key" target="_blank" rel="noopener noreferrer">Google' Titan Key</a>, <a href="https://www.yubico.com/products/yubikey-5-overview/" target="_blank" rel="noopener noreferrer">Yubico' Yubikey</a>.
                         For more advanced users, there are tutorials on how to craft your own hardware key.
-                    </Spoiler>
-                <Spoiler title="Is my data secure?">
-
+                </Spoiler>
+                <Spoiler title="Browser Support ***">
+                    The following web browsers support this authentication method.
+                    <li>Chrome 67+</li>
+                    <li>Firefox 60+</li>
+                    <li>Safari 13+</li>
+                    <li>Opera 54+</li>
                 </Spoiler>
             </div>
         </div>
