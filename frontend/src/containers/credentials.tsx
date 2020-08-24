@@ -10,6 +10,13 @@ export const Credentials = () => {
         credentials: [],
         loaded: false,
     });
+    const addCredential = () => {
+        //Add...-+
+    }
+
+    const deleteCredential = () => {
+        
+    }
     React.useEffect(() => {
         async function getCreds() {
             try {
@@ -37,7 +44,7 @@ export const Credentials = () => {
                         label="Add another credential in case you lose one."
                         placeHolder="Name for credential (e.g. bluetooth key)"
                     />
-                    <Button style={{width:"100px"}}>Add</Button>
+                    <Button onClick={addCredential} style={{width:"100px"}}>Add</Button>
                 </div>
                 {state.loaded ?
                     state.credentials.map((cred: any, inc: number) => {
