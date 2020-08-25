@@ -11,25 +11,27 @@ import (
 	"time"
 )
 
-//Credential Represents the data from a key in database serialized form
+//Credential Represents the data from a hardware key in database serialized form
 type Credential struct {
-	ID         uint       `json:"id" gorm:"primary_key"`
+	ID         uint       `json:"-" gorm:"primary_key"`
 	CreatedAt  time.Time  `json:"created_at"`
 	UpdatedAt  time.Time  `json:"updated_at"`
 	DeletedAt  *time.Time `json:"-" sql:"index"`
-	AAGUID     []byte     `json:"-" gorm:"size:255"`
+	Nickname   string     `json:"nickname"`
+	AAGUID     []byte     `json:"aa_guid" gorm:"size:255"` //The id we care about
 	Details    []byte     `json:"-" gorm:"size:2048"`
 	SignCount  uint32     `json:"sign_count"`
 	FKUsername string     `json:"-"`
 }
 
 //AddCredential Associates a credential with a user
-func (a *Account) AddCredential(cred webauthn.Credential) {
+func (a *Account) AddCredential(cred webauthn.Credential, name string) {
 	credJSON, err := json.Marshal(cred)
 	if err != nil {
 	}
 
 	newCredential := Credential{
+		Nickname:   name,
 		Details:    credJSON,
 		FKUsername: a.Username,
 		AAGUID:     cred.Authenticator.AAGUID,
@@ -59,16 +61,23 @@ func GetCredentials(user string) []*Credential {
 	return credentials
 }
 
-//UpdateCredential updates the
+//UpdateCredential updates the updated_at and sign_count property after a successful authentication
 func UpdateCredential(aaguid []byte, counter uint32) {
 	credential := &Credential{}
 	GetDB().
-		Model(&credential).
 		Where("aa_guid = ?", aaguid).
-		Updates(map[string]interface{}{
+		First(&credential).
+		Update(map[string]interface{}{
 			"sign_count": counter,
 			"updated_at": time.Now(),
 		})
+	return
+}
+
+func DeleteCredential(aaguid []byte) {
+	credential := &Credential{}
+	GetDB().Where("aa_guid = ?", aaguid).
+		Delete(&credential)
 	return
 }
 

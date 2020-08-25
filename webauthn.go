@@ -53,7 +53,8 @@ func StartRegistration(w http.ResponseWriter, r *http.Request) {
 		controllers.JSONResponse(w, res, http.StatusOK)
 		return
 	}
-	account = models.NewUser(a.Username, "Test Name")
+	//Create account issue challenge
+	account = models.NewUser(a.Username, a.Name)
 
 	registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
 		credCreationOpts.CredentialExcludeList = account.CredentialExcludeList()
@@ -85,7 +86,6 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
 	session := vars["session"]
-	// decoder := json.NewDecoder(r.Body)
 	raw, e := base64.StdEncoding.DecodeString(session)
 	if e != nil {
 		fmt.Println(e)
@@ -107,7 +107,7 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account.AddCredential(*credential)
+	account.AddCredential(*credential, "Default Credential")
 
 	response := Response{
 		Message: "Registration Successful",
@@ -195,3 +195,77 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	controllers.JSONResponse(w, response, http.StatusOK)
 	return
 }
+
+//Add additional authenticators to your account.
+
+//BeginNewCredential starts the process of creating an account however it is jwt protected
+var BeginNewCredential = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value("account").(string)
+	account := models.GetUser(user)
+	registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
+		credCreationOpts.CredentialExcludeList = account.CredentialExcludeList()
+	}
+
+	//Generate PublicKeyCredentialCreationOptions, session data
+	options, sessionData, err := webAuthn.BeginRegistration(
+		account,
+		registerOptions,
+	)
+	if err != nil {
+		controllers.JSONResponse(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//Todo send the session id back down to client or jwt
+
+	resp := RegisterChallenge{
+		Options:     options,
+		SessionData: sessionData,
+	}
+
+	controllers.JSONResponse(w, resp, http.StatusOK)
+	return
+})
+
+var FinishNewCredential = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	nickname := vars["nickname"]
+	session := vars["session"]
+	raw, e := base64.StdEncoding.DecodeString(session)
+	if e != nil {
+		res := Response{
+			Success: false,
+			Message: "Internal server error",
+		}
+		controllers.JSONResponse(w, res, http.StatusInternalServerError)
+		return
+	}
+	var sess = webauthn.SessionData{}
+	err := json.Unmarshal(raw, &sess)
+
+	// get user
+	user := r.Context().Value("account").(string)
+	account := models.GetUser(user)
+
+	credential, err := webAuthn.FinishRegistration(account, sess, r)
+	if err != nil {
+		fmt.Println("Finish Register \n", err)
+		controllers.JSONResponse(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	account.AddCredential(*credential, nickname)
+
+	cred, err := models.GetCredential(credential.Authenticator.AAGUID)
+	if err != nil {
+		fmt.Println(err)
+		res := Response{
+			Success: false,
+			Message: err.Error(),
+		}
+		controllers.JSONResponse(w, res, http.StatusInternalServerError)
+		return
+	}
+	controllers.JSONResponse(w, cred, http.StatusOK)
+	return
+})

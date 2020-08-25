@@ -34,36 +34,49 @@ func main() {
 	auth.HandleFunc("/register/finish/{username}/{session}", FinishRegistration).Methods("POST")
 	auth.HandleFunc("/login/start", StartLogin).Methods("POST")
 	auth.HandleFunc("/login/finish/{username}/{session}", FinishLogin).Methods("POST")
-	router.HandleFunc("/api/credentials", GetCredentialsFor).Methods("GET")
-	// router.HandleFunc("/api/credentials/{id}", GetCredentialsFor).Methods("PUT")
-	// router.HandleFunc("/api/credentials", GetCredentialsFor).Methods("DELETE")
-	router.HandleFunc("/api/profile", GetUserProfile).Methods("GET")
-	router.Use(controllers.EnforceJWTAuth)
-	//Todo replace with SPA frontend
+	router.Handle(
+		"/api/credentials",
+		controllers.EnforceJWTAuth(GetCredentialsFor),
+	).Methods("GET")
+	router.Handle(
+		"/api/profile",
+		controllers.EnforceJWTAuth(GetUserProfile),
+	).Methods("GET")
+
+	router.Handle(
+		"/api/credential/start",
+		controllers.EnforceJWTAuth(BeginNewCredential),
+	).Methods("GET")
+
+	router.Handle(
+		"/api/credential/finish/{nickname}/{session}",
+		controllers.EnforceJWTAuth(FinishNewCredential),
+	).Methods("POST")
+
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
 	serverAddress := ":8080"
 	log.Println("starting server at", serverAddress)
 	log.Fatal(http.ListenAndServe(serverAddress, handlers.CORS(header, methods, origins)(router)))
 }
 
-type CredentialResponse struct {
+type CredentialsResponse struct {
 	Success     bool                 `json:"success"`
 	Credentials []*models.Credential `json:"credentials"`
 }
 
 //GetCredentialsFor grabs all the credentials associated with the user for the frontend
-func GetCredentialsFor(w http.ResponseWriter, r *http.Request) {
+var GetCredentialsFor = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	account := r.Context().Value("account").(string)
 	data := models.GetCredentials(account)
-	resp := CredentialResponse{
+	resp := CredentialsResponse{
 		Success:     true,
 		Credentials: data,
 	}
 	controllers.JSONResponse(w, resp, http.StatusOK)
 	return
-}
+})
 
-func GetUserProfile(w http.ResponseWriter, r *http.Request) {
+var GetUserProfile = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value("account").(string)
 	account := models.GetUser(user)
 	if account == nil {
@@ -76,4 +89,4 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	controllers.JSONResponse(w, account, http.StatusOK)
 	return
-}
+})

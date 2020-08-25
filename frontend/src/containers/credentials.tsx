@@ -3,20 +3,70 @@ import { axiosAuth } from '../utils/axios';
 import { Credential } from '../components/credential/credential';
 import { Input } from '../components/input/input';
 import { Button } from '../components/button/button';
+import { bufferDecode, bufferEncode } from '../utils/webauthn';
+import Cookies from 'universal-cookie';
 
 export const Credentials = () => {
-    const date = new Date();
+    const cookies = new Cookies();
     const [state, setState] = React.useState<any>({
         credentials: [],
+        credName: "",
         loaded: false,
     });
-    const addCredential = () => {
+    const addCredential = async() => {
         //Add...-+
+        try {
+            const req = await axiosAuth.get("/api/credential/start");
+
+            //Todo remove, will make this jwt
+            let sessJSON = JSON.stringify(req.data.session_data);
+            let sessB64 = Buffer.from(sessJSON).toString("base64");
+            cookies.set("cred-token", sessB64)
+
+            //After receiving registration data, decode/mutate response
+            let credentialCreationOptions = req.data.options;
+            let { user, challenge, excludeCredentials } = credentialCreationOptions.publicKey;
+            credentialCreationOptions.publicKey.challenge = bufferDecode(challenge);
+            credentialCreationOptions.publicKey.user.id = bufferDecode(user.id);
+            if (excludeCredentials) {
+                excludeCredentials.map((cred: any) => {
+                    cred.id = bufferDecode(cred.id)
+                })
+            }
+            //Call browser to insert key
+            const credential: any = await navigator.credentials.create({
+                publicKey: credentialCreationOptions.publicKey
+            })
+            const sessionData = cookies.get("cred-token")
+            console.log(credential)
+            let { attestationObject, clientDataJSON, rawId } = credential.response;
+            const newCred = await axiosAuth.post(`/api/credential/finish/${state.credName}/${sessionData}`, {
+                id: credential.id,
+                rawId: bufferEncode(rawId),
+                type: credential.type,
+                response: {
+                    attestationObject: bufferEncode(attestationObject),
+                    clientDataJSON: bufferEncode(clientDataJSON),
+                },
+            })
+            console.log("new \n", newCred);
+        } catch (error) {
+            console.log(error);
+        }
+        
     }
 
     const deleteCredential = () => {
         
     }
+
+    const onInputChange = (event:any) => {
+        setState({
+            ...state,
+            credName: event.target.value,
+        })
+    }
+
     React.useEffect(() => {
         async function getCreds() {
             try {
@@ -41,6 +91,7 @@ export const Credentials = () => {
                 <h1>Credentials</h1>
                 <div>
                     <Input
+                        onChange={onInputChange}
                         label="Add another credential in case you lose one."
                         placeHolder="Name for credential (e.g. bluetooth key)"
                     />
@@ -51,7 +102,8 @@ export const Credentials = () => {
                         const updated = new Date(cred.updated_at)
                         return (
                             <Credential 
-                                key={cred.id} 
+                                name={cred.nickname}
+                                key={cred.aa_guid} 
                                 lastUsed={updated.toLocaleString()} 
                                 useCount={cred.sign_count} 
                                 //Onclick to delete

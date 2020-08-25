@@ -48,90 +48,70 @@ func CreateJWT(a *models.Account) string {
 	return tokenString
 }
 
-//EnforceJWTAuth is custom middleware to enforce authentication on all in the auth required array
+//EnforceJWTAuth is custom middleware to enforce authentication on specified
 func EnforceJWTAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//List of endpoints that doesn't require auth
-		authRequired := []string{
-			"/todos",
-			"/api/credentials",
-			"/api/profile",
-		}
-		requestPath := r.URL.Path //current request path
-		//check if request does not need authentication, serve the request if it doesn't need it
-		for _, value := range authRequired {
-			if requestPath == value {
-				tokenHeader := r.Header.Get("Authorization") //Grab the token from the header
+		tokenHeader := r.Header.Get("Authorization") //Grab the token from the header
 
-				if tokenHeader == "" { //Token is missing, returns with error code 403 Unauthorized
-					w.WriteHeader(http.StatusForbidden)
-					w.Header().Add("Content-Type", "application/json")
-					response := AuthResponse{
-						StatusCode: 401,
-						Message:    "Missing authentication token",
-					}
-					JSONResponse(w, response, http.StatusUnauthorized)
-					return
-				}
-
-				splitted := strings.Split(tokenHeader, " ") //Split token from `Bearer {token}`
-				if len(splitted) != 2 {
-					w.WriteHeader(http.StatusForbidden)
-					w.Header().Add("Content-Type", "application/json")
-					response := AuthResponse{
-						StatusCode: 403,
-						Message:    "Invalid authentication token",
-					}
-					JSONResponse(w, response, http.StatusForbidden)
-					return
-				}
-
-				tokenPart := splitted[1] //Grab the token
-
-				claims := &Claims{}
-
-				token, err := jwt.ParseWithClaims(tokenPart, claims, func(token *jwt.Token) (interface{}, error) {
-					return []byte(jwtKey), nil
-				})
-
-				//Error decoding the token
-				if err != nil {
-					w.WriteHeader(http.StatusForbidden)
-					w.Header().Add("Content-Type", "application/json")
-					response := AuthResponse{
-						StatusCode: 403,
-						Message:    "Malformed or expired authentication token",
-					}
-					JSONResponse(w, response, http.StatusForbidden)
-					return
-				}
-
-				//Token is invalid, maybe not signed on this server
-				if !token.Valid {
-					w.WriteHeader(http.StatusForbidden)
-					w.Header().Add("Content-Type", "application/json")
-					response := AuthResponse{
-						StatusCode: 403,
-						Message:    "Token is not valid",
-					}
-					JSONResponse(w, response, http.StatusForbidden)
-					return
-				}
-
-				//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
-				ctx := context.WithValue(r.Context(), "account", claims.Username)
-				r = r.WithContext(ctx)
-				next.ServeHTTP(w, r) //proceed in the middleware chain!
-				return
+		if tokenHeader == "" { //Token is missing, returns with error code 403 Unauthorized
+			w.WriteHeader(http.StatusForbidden)
+			w.Header().Add("Content-Type", "application/json")
+			response := AuthResponse{
+				StatusCode: 401,
+				Message:    "Missing authentication token",
 			}
+			JSONResponse(w, response, http.StatusUnauthorized)
+			return
 		}
-		next.ServeHTTP(w, r)
+
+		splitted := strings.Split(tokenHeader, " ") //Split token from `Bearer {token}`
+		if len(splitted) != 2 {
+			w.WriteHeader(http.StatusForbidden)
+			w.Header().Add("Content-Type", "application/json")
+			response := AuthResponse{
+				StatusCode: 403,
+				Message:    "Invalid authentication token",
+			}
+			JSONResponse(w, response, http.StatusForbidden)
+			return
+		}
+
+		tokenPart := splitted[1] //Grab the token
+		claims := &Claims{}
+
+		token, err := jwt.ParseWithClaims(tokenPart, claims, func(token *jwt.Token) (interface{}, error) {
+			return []byte(jwtKey), nil
+		})
+
+		//Error decoding the token
+		if err != nil {
+			response := AuthResponse{
+				StatusCode: 403,
+				Message:    "Malformed or expired authentication token",
+			}
+			JSONResponse(w, response, http.StatusForbidden)
+			return
+		}
+
+		//Token is invalid, maybe not signed on this server
+		if !token.Valid {
+			response := AuthResponse{
+				StatusCode: 403,
+				Message:    "Token is not valid",
+			}
+			JSONResponse(w, response, http.StatusForbidden)
+			return
+		}
+
+		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
+		ctx := context.WithValue(r.Context(), "account", claims.Username)
+		next.ServeHTTP(w, r.WithContext(ctx)) //proceed in the middleware chain!
 		return
 	})
 }
 
-//JSONResponse returns a serialized response
-var JSONResponse = func(w http.ResponseWriter, d interface{}, c int) {
+//JSONResponse returns a marshalled response with a status code
+func JSONResponse(w http.ResponseWriter, d interface{}, c int) {
 	dj, err := json.Marshal(d)
 	if err != nil {
 		http.Error(w, "Error creating JSON response", http.StatusInternalServerError)
