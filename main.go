@@ -53,6 +53,11 @@ func main() {
 		controllers.EnforceJWTAuth(FinishNewCredential),
 	).Methods("POST")
 
+	router.Handle(
+		"/api/credential/{id}",
+		controllers.EnforceJWTAuth(DeleteUserCredential),
+	).Methods("DELETE")
+
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
 	serverAddress := ":8080"
 	log.Println("starting server at", serverAddress)

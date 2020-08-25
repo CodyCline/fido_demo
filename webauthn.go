@@ -10,6 +10,7 @@ import (
 	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
 )
 
 type Response struct {
@@ -254,18 +255,28 @@ var FinishNewCredential = http.HandlerFunc(func(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	account.AddCredential(*credential, nickname)
+	newCred := account.AddCredential(*credential, nickname)
 
-	cred, err := models.GetCredential(credential.Authenticator.AAGUID)
+	controllers.JSONResponse(w, newCred, http.StatusOK)
+	return
+})
+
+var DeleteUserCredential = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// user := r.Context().Value("account").(string)
+	// account := models.GetUser(user)
+	vars := mux.Vars(r)
+	i := vars["id"]
+	id, err := strconv.ParseUint(i, 10, 32)
 	if err != nil {
-		fmt.Println(err)
-		res := Response{
-			Success: false,
-			Message: err.Error(),
-		}
-		controllers.JSONResponse(w, res, http.StatusInternalServerError)
+		controllers.JSONResponse(w, "ERROR", http.StatusInternalServerError)
 		return
 	}
-	controllers.JSONResponse(w, cred, http.StatusOK)
+	//TODO CONVERT TO CORRECT TYPE
+	models.DeleteCredential(id)
+	rs := Response{
+		Success: true,
+		Message: "Successfully deleted authenticator",
+	}
+	controllers.JSONResponse(w, rs, http.StatusNoContent)
 	return
 })

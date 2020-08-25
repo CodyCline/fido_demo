@@ -49,15 +49,29 @@ export const Credentials = () => {
                     clientDataJSON: bufferEncode(clientDataJSON),
                 },
             })
-            console.log("new \n", newCred);
+            console.log(newCred)
+            setState({
+                ...state,
+                credentials: [
+                    ...state.credentials,
+                    newCred.data,
+                ]
+            })
         } catch (error) {
             console.log(error);
         }
         
     }
 
-    const deleteCredential = () => {
-        
+    const deleteCredential = async(id: string | number) => {
+        const req = await axiosAuth.delete("/api/credential/" + id);
+        const updatedCreds = state.credentials.filter((cred:any) => {
+            return cred.id !== id
+        })
+        setState({
+            ...state,
+            credentials: updatedCreds
+        })
     }
 
     const onInputChange = (event:any) => {
@@ -103,10 +117,10 @@ export const Credentials = () => {
                         return (
                             <Credential 
                                 name={cred.nickname}
-                                key={cred.aa_guid} 
+                                key={cred.id} 
                                 lastUsed={updated.toLocaleString()} 
                                 useCount={cred.sign_count} 
-                                //Onclick to delete
+                                onDelete={() => deleteCredential(cred.id)}
                             />
                         )
                     })

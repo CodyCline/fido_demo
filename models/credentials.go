@@ -13,7 +13,7 @@ import (
 
 //Credential Represents the data from a hardware key in database serialized form
 type Credential struct {
-	ID         uint       `json:"-" gorm:"primary_key"`
+	ID         uint       `json:"id" gorm:"primary_key"`
 	CreatedAt  time.Time  `json:"created_at"`
 	UpdatedAt  time.Time  `json:"updated_at"`
 	DeletedAt  *time.Time `json:"-" sql:"index"`
@@ -25,7 +25,7 @@ type Credential struct {
 }
 
 //AddCredential Associates a credential with a user
-func (a *Account) AddCredential(cred webauthn.Credential, name string) {
+func (a *Account) AddCredential(cred webauthn.Credential, name string) Credential {
 	credJSON, err := json.Marshal(cred)
 	if err != nil {
 	}
@@ -38,6 +38,7 @@ func (a *Account) AddCredential(cred webauthn.Credential, name string) {
 		SignCount:  cred.Authenticator.SignCount,
 	}
 	GetDB().Save(&newCredential)
+	return newCredential
 
 }
 
@@ -74,9 +75,10 @@ func UpdateCredential(aaguid []byte, counter uint32) {
 	return
 }
 
-func DeleteCredential(aaguid []byte) {
+func DeleteCredential(id uint64) {
 	credential := &Credential{}
-	GetDB().Where("aa_guid = ?", aaguid).
+	GetDB().
+		Where("id = ?", id).
 		Delete(&credential)
 	return
 }
